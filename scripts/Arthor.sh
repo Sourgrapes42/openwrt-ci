@@ -45,4 +45,7 @@ git clone --depth=1 https://github.com/zsh-users/zsh-completions ./.oh-my-zsh/cu
 # Get .zshrc dotfile
 cp $GITHUB_WORKSPACE/data/zsh/.zshrc .
 
+# Change default shell to zsh
+sed -i 's/\/bin\/ash/\/usr\/bin\/zsh/g' package/base-files/files/etc/passwd
+
 popd
