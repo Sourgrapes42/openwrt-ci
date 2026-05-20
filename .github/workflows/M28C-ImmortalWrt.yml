@@ -60,9 +60,7 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         sudo -E apt-get -y update
-        sudo -E apt-get -y install $(curl -fsSL is.gd/depends_ubuntu_2204)
-        sudo -E apt-get -y install libncurses-dev
-        sudo -E apt-get -y install python3-pyelftools python3-pip
+        sudo bash -c 'bash <(curl -s https://build-scripts.immortalwrt.org/init_build_environment.sh)'
         if ! python3 -c "from elftools.elf.elffile import ELFFile"; then
           echo "python3 无法导入 elftools，尝试通过 pip 安装"
           sudo -E python3 -m pip install --break-system-packages pyelftools
@@ -154,23 +152,24 @@ jobs:
         cd $OPENWRT_PATH
         LOG_FILE="$OPENWRT_PATH/make-j1-Vs.log"
         echo "BUILD_LOG=$LOG_FILE" >> $GITHUB_ENV
+        echo "verbose_log=false" >> $GITHUB_OUTPUT
         echo -e "$(nproc) thread compile"
         make -j$(nproc) || make -j1 || {
           echo "进入详细日志编译模式，保存日志到 $LOG_FILE"
           set -o pipefail
           make -j1 V=s 2>&1 | tee "$LOG_FILE"
+          echo "verbose_log=true" >> $GITHUB_OUTPUT
         }
         echo "status=success" >> $GITHUB_OUTPUT
         echo "DATE=$(date +"%Y-%m-%d %H:%M:%S")" >> $GITHUB_ENV
         echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
 
     - name: Upload Verbose Build Log(上传详细编译日志)
-      if: always()
+      if: steps.compile.outputs.verbose_log == 'true'
       uses: actions/upload-artifact@main
       with:
         name: ${{ env.FIRMWARE_TAG }}-build-log-${{ github.run_number }}
         path: ${{ env.BUILD_LOG }}
-        if-no-files-found: ignore
 
     - name: Check Space Usage(检查空间使用情况)
       if: (!cancelled())
