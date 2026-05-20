@@ -79,9 +79,11 @@ jobs:
 
     - name: Generate Variables(生成变量)
       run: |
-        cp $CONFIG_FILE $OPENWRT_PATH/.config
+        CONFIG_PATH="$GITHUB_WORKSPACE/$CONFIG_FILE"
+        [ -f "$CONFIG_PATH" ] || { echo "未找到配置文件: $CONFIG_PATH"; exit 2; }
+        cp -f "$CONFIG_PATH" "$OPENWRT_PATH/.config"
         cd $OPENWRT_PATH
-        make defconfig > /dev/null 2>&1
+        make defconfig 2>&1 | tee "$OPENWRT_PATH/defconfig-generate.log"
         SOURCE_REPO="$(echo $REPO_URL | awk -F '/' '{print $(NF)}')"
         echo "SOURCE_REPO=$SOURCE_REPO" >> $GITHUB_ENV
         DEVICE_TARGET=$(cat .config | grep CONFIG_TARGET_BOARD | awk -F '"' '{print $2}')
@@ -116,11 +118,15 @@ jobs:
   
     - name: Load Custom Configuration(加载自定义配置)
       run: |
-        cp -f $CONFIG_FILE $OPENWRT_PATH/.config
-        chmod +x $DIY_SCRIPT
+        CONFIG_PATH="$GITHUB_WORKSPACE/$CONFIG_FILE"
+        DIY_PATH="$GITHUB_WORKSPACE/$DIY_SCRIPT"
+        [ -f "$CONFIG_PATH" ] || { echo "未找到配置文件: $CONFIG_PATH"; exit 2; }
+        [ -f "$DIY_PATH" ] || { echo "未找到脚本文件: $DIY_PATH"; exit 2; }
+        cp -f "$CONFIG_PATH" "$OPENWRT_PATH/.config"
+        chmod +x "$DIY_PATH"
         cd $OPENWRT_PATH
         ls
-        $GITHUB_WORKSPACE/$DIY_SCRIPT
+        "$DIY_PATH"
 
     - name: Download DL Package(下载DL软件包)
       run: |
