@@ -2,6 +2,11 @@ name: M28C-ImmortalWrt
 
 on:
   workflow_dispatch:
+    inputs:
+      skip_mads:
+        description: "跳过最大化可用磁盘空间步骤"
+        type: boolean
+        default: false
   workflow_call:
   # schedule:
   #   - cron: 0 20 * * *
@@ -38,7 +43,7 @@ jobs:
         echo "硬盘数量：$(ls /dev/sd* | grep -v [1-9] | wc -l)" && df -hT
 
     - name: Maximize Available Disk Space(最大化可用磁盘空间​)
-      if: env.MADS == 'true'
+      if: env.MADS == 'true' && (github.event_name != 'workflow_dispatch' || github.event.inputs.skip_mads != 'true')
       uses: AdityaGarg8/remove-unwanted-software@master
       with:
         remove-dotnet: "true"
@@ -57,6 +62,12 @@ jobs:
         sudo -E apt-get -y update
         sudo -E apt-get -y install $(curl -fsSL is.gd/depends_ubuntu_2204)
         sudo -E apt-get -y install libncurses-dev
+        sudo -E apt-get -y install python3-pyelftools python3-pip
+        if ! python3 -c "from elftools.elf.elffile import ELFFile"; then
+          echo "python3 无法导入 elftools，尝试通过 pip 安装"
+          sudo -E python3 -m pip install --break-system-packages pyelftools
+          python3 -c "from elftools.elf.elffile import ELFFile"
+        fi
         sudo -E systemctl daemon-reload
         sudo -E apt-get -y autoremove --purge
         sudo -E apt-get -y clean
