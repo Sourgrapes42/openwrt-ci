@@ -8,9 +8,12 @@ sed -i "s/(\(luciversion || ''\))/(\1) + (' \/ Built by Sourgrapes42')/g" feeds/
 # sed -i 's/reg = <0x0 0x4ab00000 0x0 0x[0-9a-f]\+>/reg = <0x0 0x4ab00000 0x0 0x06000000>/' target/linux/qualcommax/files/arch/arm64/boot/dts/qcom/ipq6018-512m.dtsi
 
 echo 'src-git qmodem https://github.com/FUjr/QModem.git;main' >> feeds.conf.default
+echo "src-git fancontrol https://github.com/rockjake/luci-app-fancontrol.git" >> "feeds.conf"
 
 ./scripts/feeds update qmodem
 ./scripts/feeds install -a -p qmodem
+./scripts/feeds update fancontrol 
+./scripts/feeds install -a -f -p fancontrol
 
 # Git稀疏克隆，只克隆指定目录到本地
 function git_sparse_clone() {

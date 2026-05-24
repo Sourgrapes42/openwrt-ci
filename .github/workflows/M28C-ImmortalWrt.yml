@@ -130,13 +130,16 @@ jobs:
       run: |
         CONFIG_PATH="$GITHUB_WORKSPACE/$CONFIG_FILE"
         DIY_PATH="$GITHUB_WORKSPACE/$DIY_SCRIPT"
+        DIY_LOG_FILE="$OPENWRT_PATH/diy-script.log"
+        echo "DIY_LOG=$DIY_LOG_FILE" >> $GITHUB_ENV
         [ -f "$CONFIG_PATH" ] || { echo "未找到配置文件: $CONFIG_PATH"; exit 2; }
         [ -f "$DIY_PATH" ] || { echo "未找到脚本文件: $DIY_PATH"; exit 2; }
         cp -f "$CONFIG_PATH" "$OPENWRT_PATH/.config"
         chmod +x "$DIY_PATH"
         cd $OPENWRT_PATH
         ls
-        "$DIY_PATH"
+        set -o pipefail
+        "$DIY_PATH" 2>&1 | tee "$DIY_LOG_FILE"
 
     - name: Download DL Package(下载DL软件包)
       run: |
@@ -165,11 +168,14 @@ jobs:
         echo "FILE_DATE=$(date +"%Y.%m.%d")" >> $GITHUB_ENV
 
     - name: Upload Verbose Build Log(上传详细编译日志)
-      if: steps.compile.outputs.verbose_log == 'true'
+      if: always()
       uses: actions/upload-artifact@main
       with:
         name: ${{ env.FIRMWARE_TAG }}-build-log-${{ github.run_number }}
-        path: ${{ env.BUILD_LOG }}
+        path: |
+          ${{ env.BUILD_LOG }}
+          ${{ env.DIY_LOG }}
+        if-no-files-found: warn
 
     - name: Check Space Usage(检查空间使用情况)
       if: (!cancelled())
